@@ -1,1 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор раскладки отрезков</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .calculator-card {
+            max-width: 550px;
+            width: 100%;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            background-color: #ffffff;
+            color: #1e293b;
+            box-sizing: border-box;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #0f172a;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-success { background-color: #16a34a; color: #ffffff; }
+        .btn-success:hover { background-color: #15803d; }
+        .btn-danger { background-color: #dc2626; color: #ffffff; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-secondary { background-color: #475569; color: #ffffff; }
+        .btn-secondary:hover { background-color: #334155; }
+        
+        .result-box {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .base-box {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+        }
+        .recalc-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #16a34a;
+        }
+        .error-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
 
+<div class="calculator-card">
+    <h2>Калькулятор раскладки отрезков</h2>
+
+    <div class="info-bar">
+        <span>a = 95 мм</span>
+        <span>b = 115 мм</span>
+        <span>c = 145 мм</span>
+    </div>
+
+    <!-- ШАГ 1: ВВОД ДАННЫХ -->
+    <div id="step-input">
+        <div class="form-group">
+            <label for="length-d">Введите общую длину отрезка d (в мм):</label>
+            <input type="number" id="length-d" placeholder="Например, 1111">
+        </div>
+        <div id="error-message" class="error-box hidden"></div>
+        <button class="btn-primary" onclick="calculateBase()">Рассчитать базовый вариант</button>
+    </div>
+
+    <!-- ШАГ 2: БАЗОВЫЙ РЕЗУЛЬТАТ -->
+    <div id="step-result" class="hidden">
+        <div class="result-box base-box">
+            <h4 style="margin: 0 0 12px 0; color: #1e40af; fontSize: 16px;">Базовое решение (равномерное количество):</h4>
+            <div id="base-details"></div>
+        </div>
+        <div id="action-block" class="hidden">
+            <p style="text-align: center; margin-bottom: 16px; font-weight: 500; font-size: 15px;">Вас устраивает этот результат?</p>
+            <div class="btn-group">
+                <button class="btn-success" onclick="resetAll()">Да, устраивает</button>
+                <button class="btn-danger" onclick="calculateRecalc()">Нет, пересчитать</button>
+            </div>
+        </div>
+        <button id="btn-re-calc" class="btn-secondary hidden" onclick="resetAll()">Новый расчет</button>
+    </div>
+
+    <!-- ШАГ 3: ПЕРЕСЧЕТ -->
+    <div id="step-recalc" class="hidden">
+        <div id="recalc-container" class="result-box recalc-box">
+            <h4 style="margin: 0 0 12px 0; color: #166534; fontSize: 16px;">Пересчет завершен (Остаток &lt; 5 мм):</h4>
+            <div id="recalc-details"></div>
+        </div>
+        <div id="recalc-error" class="error-box hidden"></div>
+        <button class="btn-secondary" onclick="resetAll()">Назад к вводу</button>
+    </div>
+</div>
+
+<script>
+    const a = 95, b = 115, c = 145;
+    let currentD = 0;
+    let allSolutions = [];
+
+    function calculateBase() {
+        const inputVal = document.getElementById('length-d').value.trim();
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.classList.add('hidden');
+
+        currentD = parseInt(inputVal, 10);
+        if (isNaN(currentD) || currentD <= 0) {
+            errorDiv.innerText = 'Пожалуйста, введите корректное целое число больше нуля.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        allSolutions = [];
+        const max_c = Math.floor(currentD / c);
+
+        for (let count_c = 0; count_c <= max_c; count_c++) {
+            const rem_after_c = currentD - count_c * c;
+            const max_b = Math.floor(rem_after_c / b);
+
+            for (let count_b = 0; count_b <= max_b; count_b++) {
+                const rem_after_b = rem_after_c - count_b * b;
+                const count_a = Math.floor(rem_after_b / a);
+                const remainder = rem_after_b - count_a * a;
+
+                if (remainder >= 0) {
+                    const counts = [count_a, count_b, count_c];
+                    const spread = Math.max(...counts) - Math.min(...counts);
+
+                    allSolutions.push({
+                        comb: [count_a, count_b, count_c],
+                        remainder: remainder,
+                        spread: spread,
+                        b: count_b,
+                        c: count_c
+                    });
+                }
+            }
+        }
+
+        if (allSolutions.length === 0) {
+            errorDiv.innerText = 'Не удалось подобрать ни одной комбинации отрезков.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        // Сортировка базового варианта (Равномерность -> Минимальный остаток)
+        allSolutions.sort((x, y) => {
+            if (x.spread !== y.spread) return x.spread - y.spread;
+            if (x.remainder !== y.remainder) return x.remainder - y.remainder;
+            if (x.b !== y.b) return y.b - x.b;
+            return y.c - x.c;
+        });
+
+        const bestBase = allSolutions[0];
+        
+        document.getElementById('base-details').innerHTML = `
+            <div>• Отрезков <b>a (95 мм)</b>: ${bestBase.comb[0]} шт.</div>
+            <div>• Отрезков <b>b (115 мм)</b>: ${bestBase.comb[1]} шт.</div>
+            <div>• Отрезков <b>c (145 мм)</b>: ${bestBase.comb[2]} шт.</div>
+            <div style="margin-top: 4px; padding-top: 8px; border-top: 1px dashed #bfdbfe">
+                Занятая длина: <b>${currentD - bestBase.remainder} мм</b> из ${currentD} мм
+            </div>
+            <div style="color: ${bestBase.remainder === 0 ? '#16a34a' : '#b45309'}; font-weight: 600; margin-top: 4px;">
+                Остаток: ${bestBase.remainder} мм
+            </div>
+        `;
+
+        document.getElementById('step-input').classList.add('hidden');
+        document.getElementById('step-result').classList.remove('hidden');
+
+        if (bestBase.remainder > 0) {
+            document.getElementById('action-block').classList.remove('hidden');
+            document.getElementById('btn-re-calc').classList.add('hidden');
+        } else {
+            document.getElementById('action-block').classList.add('hidden');
+            document.getElementById('btn-re-calc').classList.remove('hidden');
+        }
+    }
+
+    function calculateRecalc() {
+        const recalcFiltered = allSolutions.filter(x => x.remainder < 5);
+        const recalcContainer = document.getElementById('recalc-container');
+        const recalcError = document.getElementById('recalc-error');
+        
+        recalcContainer.classList.add('hidden');
+        recalcError.classList.add('hidden');
+
+        if (recalcFiltered.length === 0) {
+            recalcError.innerText = 'Для данной длины физически невозможно подобрать комбинацию с остатком меньше 5 мм.';
+            recalcError.classList.remove('hidden');
+        } else {
+            recalcFiltered.sort((x, y) => {
+                const xZero = x.remainder === 0 ? 0 : 1;
+                const yZero = y.remainder === 0 ? 0 : 1;
+                if (xZero !== yZero) return xZero - yZero;
+                if (x.remainder !== y.remainder) return x.remainder - y.remainder;
+                if (x.c !== y.c) return y.c - x.c;
+                return y.b - x.b;
+            });
+
+            const bestRecalc = recalcFiltered[0];
+            document.getElementById('recalc-details').innerHTML = `
+                <div>• Отрезков <b>a (95 мм)</b>: ${bestRecalc.comb[0]} шт.</div>
