@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор отрезков v3</title>
+    <title>Калькулятор отрезков v4</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; background: #f4f4f9; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -32,7 +32,7 @@
     <div class="input-group">
         <label for="calcMode">Режим расчета:</label>
         <select id="calcMode">
-            <option value="min_rem">Вариант 1: Идеальный остаток (стремление к 0)</option>
+            <option value="min_rem">Вариант 1: Допустимый остаток (от 0 до 5 мм)</option>
             <option value="balanced_rem">Вариант 2: Равномерно (остаток от 50 до 90 мм)</option>
         </select>
     </div>
@@ -89,9 +89,11 @@ function calculate() {
 
     // Фильтрация и сортировка в зависимости от выбранного режима
     if (mode === 'min_rem') {
-        // Вариант 1: обычный расчет (минимизация остатка)
+        // Вариант 1: Допустимый остаток до 5 мм
         allSolutions.sort((x, y) => {
+            // Сначала сравниваем по остатку (в приоритете меньший остаток)
             if (x.remainder !== y.remainder) return x.remainder - y.remainder;
+            // При равных остатках смотрим на равномерность
             if (x.spread !== y.spread) return x.spread - y.spread;
             if (x.b !== y.b) return y.b - x.b;
             return y.c - x.c;
@@ -107,16 +109,12 @@ function calculate() {
             return;
         }
 
-        // Новая сортировка Варианта 2: 
-        // 1. Равномерность (минимальный разброс spread)
-        // 2. Приоритет A (чем больше A, тем выше)
-        // 3. Приоритет B (чем больше B, тем выше)
-        // 4. Приоритет C (чем больше C, тем выше)
+        // Сортировка Варианта 2: Равномерность -> A -> B -> C
         allSolutions.sort((x, y) => {
             if (x.spread !== y.spread) return x.spread - y.spread;
-            if (x.a !== y.a) return y.a - x.a; // по убыванию A
-            if (x.b !== y.b) return y.b - x.b; // по убыванию B
-            return y.c - x.c;                 // по убыванию C
+            if (x.a !== y.a) return y.a - x.a;
+            if (x.b !== y.b) return y.b - x.b;
+            return y.c - x.c;
         });
     }
 
@@ -126,10 +124,11 @@ function calculate() {
 
     resultBox.style.display = 'block';
     
-    if (mode === 'balanced_rem') {
-        resultBox.className = 'result info-box';
-    } else if (rem === 0) {
+    // Подсветка зеленым, если попали в диапазон 0-5 мм для Варианта 1
+    if (mode === 'min_rem' && rem <= 5) {
         resultBox.className = 'result success';
+    } else if (mode === 'balanced_rem') {
+        resultBox.className = 'result info-box';
     } else {
         resultBox.className = 'result';
     }
@@ -140,8 +139,8 @@ function calculate() {
     html += `• Отрезков C (145 мм): ${comb[2]} шт.<br><br>`;
     html += `<strong>Финальный остаток:</strong> ${rem} мм`;
 
-    if (mode === 'min_rem' && rem === 0) {
-        html += `<br><br><em>Остаток равен 0. Расчет идеально завершен!</em>`;
+    if (mode === 'min_rem' && rem <= 5) {
+        html += `<br><br><em>Остаток уложился в допустимые 5 мм! Расчет успешно завершен.</em>`;
     }
 
     resultBox.innerHTML = html;
