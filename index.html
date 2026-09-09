@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор отрезков v2</title>
+    <title>Калькулятор отрезков v3</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; background: #f4f4f9; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -107,16 +107,16 @@ function calculate() {
             return;
         }
 
-        // Сортировка Варианта 2: 
+        // Новая сортировка Варианта 2: 
         // 1. Равномерность (минимальный разброс spread)
-        // 2. Приоритет C (чем больше C, тем выше)
+        // 2. Приоритет A (чем больше A, тем выше)
         // 3. Приоритет B (чем больше B, тем выше)
-        // 4. Приоритет A (чем больше A, тем выше)
+        // 4. Приоритет C (чем больше C, тем выше)
         allSolutions.sort((x, y) => {
             if (x.spread !== y.spread) return x.spread - y.spread;
-            if (x.c !== y.c) return y.c - x.c; // по убыванию C
+            if (x.a !== y.a) return y.a - x.a; // по убыванию A
             if (x.b !== y.b) return y.b - x.b; // по убыванию B
-            return y.a - x.a;                 // по убыванию A
+            return y.c - x.c;                 // по убыванию C
         });
     }
 
@@ -126,7 +126,6 @@ function calculate() {
 
     resultBox.style.display = 'block';
     
-    // Стилизация плашки ответа
     if (mode === 'balanced_rem') {
         resultBox.className = 'result info-box';
     } else if (rem === 0) {
